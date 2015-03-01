@@ -6,10 +6,20 @@ import os
 import shutil
 import subprocess
 import pipes
+import datetime
 from string import Template
+from ConfigParser import SafeConfigParser
 
 # path of this script
 basepath = os.path.dirname(os.path.realpath(__file__))
+
+# read config file
+configparser = SafeConfigParser()
+configparser.read('docker-software-manager.conf')
+
+# further paths
+softwarepath = os.path.join(configparser.get('main', 'basepath'), 'software')
+composepath = os.path.join(basepath, 'docker-compose/docker-compose')
 
 # define argument parser
 parser = argparse.ArgumentParser(description="Docker software manager")
@@ -71,7 +81,7 @@ parser_remove.set_defaults(func=remove)
 
 # subcommand list
 def ls(args):
-    software_list = [x for x in os.listdir(os.path.join(basepath, '../software/')) if os.path.isdir(os.path.join(basepath, '../software/', x))]
+    software_list = [x for x in os.listdir(softwarepath) if os.path.isdir(os.path.join(softwarepath, x))]
     
     if len(software_list):
         print "Existing software:"
@@ -85,7 +95,7 @@ parser_list.set_defaults(func=ls)
 
 # helpers
 def getTarget(name):
-    return os.path.join(basepath, '../software/', name)
+    return os.path.normpath(os.path.join(softwarepath, name))
 
 def isExisting(target):
     # check if software exists
@@ -100,9 +110,21 @@ def create(args):
         print "Software allready exists!"
         return
     
+    # create git repository
+    print "[    ] Initiating git repository",
+    subprocess.call(['git', 'init', target])
+    print "\r[done] Initiating git repository"
+    
     # copy software template to software directory
     print "[    ] Copying software template",
-    shutil.copytree(os.path.join(basepath, 'software-template/'), target)
+    # shutil.copytree(os.path.join(basepath, 'software-template/'), target) # problem with base dirctory
+    for x in os.listdir(os.path.join(basepath, 'software-template/')):
+        src = os.path.join(os.path.join(basepath, 'software-template/'), x)
+        dest = os.path.join(target, x)
+        if os.path.isdir(src):
+            shutil.copytree(src, dest)
+        else:
+            shutil.copy2(src, dest)
     print "\r[done] Copying software template"
     
     # modify files with software name
@@ -121,8 +143,14 @@ def create(args):
         
     os.rename(os.path.join(target, 'software.service'), os.path.join(target, "{0}.service".format(args.name)))
     print "\r[done] Modifying software template"
+        
+    # do initial commit
+    print "[    ] Doing initial commit",
+    subprocess.call(['git', '-C', target, 'add', '--all'])
+    subprocess.call(['git', '-C', target, 'commit', '-m', 'Initial commit'])
+    print "\r[done] Doing initial commit"
     
-    print "Software directory created"
+    print "Software directory \"{0}\" created".format(args.name)
     
 parser_create = subparsers.add_parser('create')
 parser_create.add_argument("name",
@@ -199,6 +227,7 @@ def status(args):
     
     # check if software exists
     if isExisting(target):
+        print "systemd status:"
         command = ['/bin/systemctl', 'status', "{0}.service".format(args.name)]
         subprocess.call(command)
     else:
@@ -215,7 +244,7 @@ def ps(args):
     
     # check if software exists
     if isExisting(target):
-        command = ['docker-compose', '-f', pipes.quote(os.path.join(target, "docker-compose.yml")), '-p', args.name, 'ps']
+        command = [composepath, '-f', pipes.quote(os.path.join(target, "docker-compose.yml")), '-p', args.name, 'ps']
         subprocess.call(command)
     else:
         print "Software does not exist!"
@@ -231,7 +260,7 @@ def kill(args):
     
     # check if software exists
     if isExisting(target):
-        command = ['docker-compose', '-f', pipes.quote(os.path.join(target, "docker-compose.yml")), '-p', args.name, 'kill']
+        command = [composepath, '-f', pipes.quote(os.path.join(target, "docker-compose.yml")), '-p', args.name, 'kill']
         subprocess.call(command)
     else:
         print "Software does not exist!"
@@ -247,8 +276,9 @@ def logs(args):
     
     # check if software exists
     if isExisting(target):
-        command = ['docker-compose', '-f', pipes.quote(os.path.join(target, "docker-compose.yml")), '-p', args.name, 'logs']
-        subprocess.call(command)
+        command = [composepath, '-f', pipes.quote(os.path.join(target, "docker-compose.yml")), '-p', args.name, 'logs']
+        process = subprocess.Popen(command, stdin=subprocess.PIPE)
+        process.communicate()
     else:
         print "Software does not exist!"
 
@@ -263,7 +293,7 @@ def edit(args):
     
     # check if software exists
     if isExisting(target):
-        editor = os.environ.get('EDITOR','vi')
+        editor = configparser.get('main', 'editor')
         command = [editor, pipes.quote(os.path.join(target, "docker-compose.yml"))]
         subprocess.call(command)
     else:
@@ -273,6 +303,23 @@ parser_edit = subparsers.add_parser('edit')
 parser_edit.add_argument("name",
                     help="name of the software", metavar='name')
 parser_edit.set_defaults(func=edit)
+
+# subcommand backup
+def backup(args):
+    target = getTarget(args.name)
+    
+    # check if software exists
+    if isExisting(target):
+        filename = os.path.join(target, 'backups/', "{0}-{1}.tar.gz".format(args.name, datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+        command = ['tar', '-zc', '-f', filename, '-C', target, '.', '--exclude=backups']
+        subprocess.call(command)
+    else:
+        print "Software does not exist!"
+
+parser_backup = subparsers.add_parser('backup')
+parser_backup.add_argument("name",
+                    help="name of the software", metavar='name')
+parser_backup.set_defaults(func=backup)
 
 # parse given arguments
 args = parser.parse_args()
