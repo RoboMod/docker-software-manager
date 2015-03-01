@@ -52,3 +52,7 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# project specific
+docker-compose/docker-compose*
+docker-gen/docker-gen*

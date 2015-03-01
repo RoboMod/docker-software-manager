@@ -1,0 +1,12 @@
+[Unit]
+Description=$name
+After=docker-gen-nginx.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/usr/local/bin/docker-compose -f /server/software/$name/docker-compose.yml -p $name up --no-recreate
+ExecStop=/usr/local/bin/docker-compose -f /server/software/$name/docker-compose.yml -p $name stop
+
+[Install]
+WantedBy=multi-user.target 
