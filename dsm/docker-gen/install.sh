@@ -17,11 +17,11 @@ then
     ln -s $TARGET $LINK
 fi
 
-# install docker-gen nginx systemd service
-#LINK="/etc/systemd/system/docker-gen-nginx.service"
-LINK="/server/utils/docker-gen/docker-gen-nginx.service"
-#if [ ! -h "$LINK" ]
-#then
-    #ln -s $BASEDIR/docker-gen-nginx.service $LINK
-    systemctl enable $LINK
-#fi
+## install docker-gen nginx systemd service
+##LINK="/etc/systemd/system/docker-gen-nginx.service"
+#LINK="/server/utils/docker-gen/docker-gen-nginx.service"
+##if [ ! -h "$LINK" ]
+##then
+#    #ln -s $BASEDIR/docker-gen-nginx.service $LINK
+#    systemctl enable $LINK
+##fi

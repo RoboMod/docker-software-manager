@@ -19,11 +19,11 @@ then
     rm $FILE
 fi
 
-# remove systemd link
-#LINK="/etc/systemd/system/docker-gen-nginx.service"
-LINK="/server/utils/docker-gen/docker-gen-nginx.service"
-#if [ -h "$LINK" ]
-#then
-    systemctl disable $LINK
-    #rm $LINK
-#fi
+## remove systemd link
+##LINK="/etc/systemd/system/docker-gen-nginx.service"
+#LINK="/server/utils/docker-gen/docker-gen-nginx.service"
+##if [ -h "$LINK" ]
+##then
+#    systemctl disable $LINK
+#    #rm $LINK
+##fi

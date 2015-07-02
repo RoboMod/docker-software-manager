@@ -1,0 +1,5 @@
+include dsm/defaults.conf
+recursive-include dsm/docker-gen *.sh
+include dsm/docker-gen/nginx.tmpl
+include dsm/docker-gen/docker-gen-nginx.service
+graft dsm/software-template

@@ -1,0 +1,12 @@
+[Unit]
+Description=Docker-gen daemon to update nginx configuration
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/usr/local/bin/docker-gen -only-exposed -watch -notify "systemctl reload nginx.service" /etc/docker-software-manager/nginx.tmpl /etc/nginx/sites-available/docker-sites
+ExecStop=/bin/rm /etc/nginx/sites-available/docker-sites
+
+[Install]
+WantedBy=multi-user.target  

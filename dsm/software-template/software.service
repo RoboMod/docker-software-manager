@@ -9,4 +9,4 @@ ExecStart=/usr/local/bin/docker-compose -f /server/software/$name/docker-compose
 ExecStop=/usr/local/bin/docker-compose -f /server/software/$name/docker-compose.yml -p $name stop
 
 [Install]
-WantedBy=multi-user.target 
+WantedBy=multi-user.target

@@ -55,5 +55,14 @@ target/
 
 # project specific
 docker-compose/docker-compose*
-docker-gen/docker-gen*
+dsm/docker-gen/docker-gen*
 server
+
+# Editor files
+*.anjuta
+.anjuta_sym_db.db
+.ropeproject
+docker-software-manager.psp
+
+# temp files
+*.*~
