@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='docker-software-manager',
-      version='0.1.11',
+      version='0.2.1',
       description='Manage your server software with a combination of docker, systemd, docker-compose, docker-gen and nginx ',
       url='https://github.com/robomod/docker-software-manager',
       author='Andreas Ihrig (RoboMod)',
@@ -20,7 +20,7 @@ setup(name='docker-software-manager',
                 'software-template/software.service',
                 'software-template/backups/.placeholder',
                 'software-template/data/.placeholder',]
-        }
+        },
       entry_points = {
         'console_scripts': ['dsm=dsm.cli:main']
         }

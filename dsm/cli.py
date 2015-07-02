@@ -18,7 +18,8 @@ class dsm():
         # read config file
         self.config = SafeConfigParser()
         self.config.readfp(open(os.path.join(self.basepath, 'defaults.conf')))
-        self.config.read('/etc/docker-software-manager/docker-software-manager.conf')
+        self.configpath = '/etc/docker-software-manager/'
+        self.config.read(os.path.join(self.configpath,'docker-software-manager.conf'))
 
         # further paths
         if os.path.isabs(self.config.get('main', 'basepath')):
@@ -46,23 +47,21 @@ class dsm():
         subprocess.call(['systemctl', 'enable', os.path.join(self.basepath, 'docker-gen/docker-gen-nginx.service')])
         print "\r[done] Installing docker-gen"
         
-        # done by pip
-        ## install docker-compose
-        #print "[    ] Installing docker-compose",
-        #subprocess.call([os.path.join(basepath, 'docker-compose/update.sh')])
-        #subprocess.call([os.path.join(basepath, 'docker-compose/install.sh')])
-        #print "\r[done] Installing docker-compose"
-
-        # done by pip
-        ## install link to docker-software-manager
-        #print "[    ] Installing docker-software-manager",
-        #if not os.path.exists('/usr/local/bin/docker-software-manager'):
-        #    command = ['ln', '-s', os.path.join(basepath, 'docker-software-manager.py'), '/usr/local/bin/docker-software-manager']
-        #    subprocess.call(command)
-        #if not os.path.exists('/usr/local/bin/dsm'):
-        #    command = ['ln', '-s', os.path.join(basepath, 'docker-software-manager.py'), '/usr/local/bin/dsm']
-        #    subprocess.call(command)    
-        #print "\r[done] Installing docker-software-manager"
+        ## install config files
+        print "[    ] Installing config files"
+        if not os.path.isdir(self.configpath):
+            os.makedirs(self.configpath)
+        if not os.path.exists(os.path.join(self.configpath, 'docker-software-manager.conf')):
+            subprocess.call(['cp', os.path.join(self.basepath, 'defaults.conf'), os.path.join(self.configpath, 'docker-software-manager.conf')])
+        else:
+            print "docker-software-manager.tmpl allready exists."
+            print "You can find the default version at {0}".format(os.path.join(self.basepath, 'defaults.conf'))
+        if not os.path.exists(os.path.join(self.configpath, 'nginx.tmpl')):
+            subprocess.call(['cp', os.path.join(self.basepath, 'docker-gen/nginx.tmpl'), os.path.join(self.configpath, 'nginx.tmpl')])
+        else:
+            print "nginx.tmpl allready exists."
+            print "You can find the default version at {0}".format(os.path.join(self.basepath, 'docker-gen/nginx.tmpl'))
+        print "[done] Installing config files"
         
         print "Creating software directory"
         if not os.path.isdir(self.softwarepath):
@@ -78,18 +77,8 @@ class dsm():
         subprocess.call(['systemctl', 'disable', os.path.join(self.basepath, 'docker-gen/docker-gen-nginx.service')])
         print "\r[done] Removing docker-gen"
         
-        ## remove docker-compose
-        #print "[    ] Removing docker-compose",
-        #subprocess.call([os.path.join(basepath, 'docker-compose/remove.sh')])
-        #print "\r[done] Removing docker-compose"
-        
-        ## install link to docker-software-manager
-        #print "[    ] Removing docker-software-manager",
-        #if os.path.exists('/usr/local/bin/docker-software-manager'):
-        #    subprocess.call(['rm', '/usr/local/bin/docker-software-manager'])
-        #if os.path.exists('/usr/local/bin/dsm'):
-        #    subprocess.call(['rm', '/usr/local/bin/dsm'])
-        #print "\r[done] Removing docker-software-manager"
+        print "Not removing config directory!"
+        print "Run `rm -r {0}` to remove it, but pay attenuation: this will erase config!".format(self.configpath)
         
         print "Not removing software directory!"
         print "Run `rm -r {0}` to remove it, but pay attenuation: this will erase data!".format(self.softwarepath)
@@ -238,6 +227,17 @@ class dsm():
             subprocess.call(command)
         else:
             print "Software does not exist!"
+            
+    #subcommand rm
+    def rm(self, args):
+        target = self.getTarget(args.name)
+        
+        # check if software exists
+        if self.isExisting(target):
+            command = ['docker-compose', '-f', pipes.quote(os.path.join(target, "docker-compose.yml")), '-p', args.name, 'rm']
+            subprocess.call(command)
+        else:
+            print "Software does not exist!"
 
     #subcommand logs
     def logs(self, args):
@@ -333,12 +333,18 @@ class dsm():
         parser_ps.add_argument("name",
                             help="name of the software", metavar='name')
         parser_ps.set_defaults(func=self.ps)
-
+        
         # subcommand kill
         parser_kill = subparsers.add_parser('kill')
         parser_kill.add_argument("name",
                             help="name of the software", metavar='name')
         parser_kill.set_defaults(func=self.kill)
+        
+        # subcommand rm
+        parser_rm = subparsers.add_parser('rm')
+        parser_rm.add_argument("name",
+                            help="name of the software", metavar='name')
+        parser_rm.set_defaults(func=self.rm)
                 
         # subcommand logs
         parser_logs = subparsers.add_parser('logs')
